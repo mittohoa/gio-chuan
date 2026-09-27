@@ -1,0 +1,170 @@
+<!doctype html>
+<!--
+  Nguồn của ảnh bìa 1024x500 cho Play Store.
+
+  Vẽ bằng Canvas 2D chứ không phải DOM, vì cần xuất ra file PNG đúng kích thước
+  tới từng pixel. Bộ sinh PNG trong scripts/gen-icons.mjs không dùng được ở đây:
+  nó chỉ vẽ hình khối, mà tên ứng dụng lại có dấu tiếng Việt.
+
+  Cách dùng:
+    node design/serve.mjs          rồi mở http://localhost:4600/
+  Trang tự vẽ, tự gửi PNG về server, server ghi ra design/feature-graphic.png
+-->
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Feature graphic</title>
+    <style>
+      body {
+        margin: 0;
+        background: #15181d;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #93a0b8;
+      }
+      canvas { display: block; box-shadow: 0 8px 40px rgb(0 0 0 / 0.6); }
+      #status { margin-top: 16px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1024" height="500"></canvas>
+    <div id="status">đang vẽ…</div>
+
+    <script>
+      const W = 1024
+      const H = 500
+      const BG = '#06080c'
+      const GRID = '#0d131c'
+      const GLOW = '#3ddc97'
+      const MUTED = '#93a0b8'
+      const DIM = '#3d4959'
+
+      const c = document.getElementById('c')
+      const g = c.getContext('2d')
+
+      // ---------------------------------------------------------------- nền
+      g.fillStyle = BG
+      g.fillRect(0, 0, W, H)
+
+      // Lưới kẻ ô mảnh — cùng ngôn ngữ hình ảnh với nền của app.
+      g.strokeStyle = GRID
+      g.lineWidth = 1
+      for (let x = 0.5; x < W; x += 48) {
+        g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke()
+      }
+      for (let y = 0.5; y < H; y += 48) {
+        g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke()
+      }
+
+      // Quầng sáng sau mặt đồng hồ để nửa phải không bị chìm vào nền.
+      const halo = g.createRadialGradient(890, 250, 0, 890, 250, 280)
+      halo.addColorStop(0, 'rgba(61, 220, 151, 0.11)')
+      halo.addColorStop(1, 'rgba(61, 220, 151, 0)')
+      g.fillStyle = halo
+      g.fillRect(560, 0, W - 560, H)
+
+      // -------------------------------------------------------- mặt đồng hồ
+      // Tâm đặt lệch sang phải để vòng vạch tràn một phần ra khỏi mép.
+      const CX = 890
+      const CY = 250
+      const SCALE = 1.15
+
+      g.strokeStyle = '#131c27'
+      g.lineWidth = 1
+      g.beginPath()
+      g.arc(CX, CY, 152 * SCALE, 0, Math.PI * 2)
+      g.stroke()
+
+      // 60 vạch giây; phần đã trôi qua được thắp sáng, giống nhịp của app thật.
+      const LIT_UPTO = 36
+      for (let i = 0; i < 60; i++) {
+        const major = i % 5 === 0
+        const len = (major ? 16 : 9) * SCALE
+        const R = 178 * SCALE
+        const rad = ((i * 6 - 90) * Math.PI) / 180
+        const lit = i <= LIT_UPTO
+        g.strokeStyle = lit ? GLOW : DIM
+        g.globalAlpha = lit ? 0.9 : major ? 0.7 : 0.45
+        g.lineWidth = (major ? 2.5 : 2) * SCALE
+        g.beginPath()
+        g.moveTo(CX + (R - len) * Math.cos(rad), CY + (R - len) * Math.sin(rad))
+        g.lineTo(CX + R * Math.cos(rad), CY + R * Math.sin(rad))
+        g.stroke()
+      }
+      g.globalAlpha = 1
+
+      // Kim quét, đặt ở 218° cho khớp vùng vạch đang sáng.
+      const handRad = ((218 - 90) * Math.PI) / 180
+      g.strokeStyle = GLOW
+      g.lineWidth = 2.5 * SCALE
+      g.lineCap = 'round'
+      g.beginPath()
+      g.moveTo(CX - 16 * SCALE * Math.cos(handRad), CY - 16 * SCALE * Math.sin(handRad))
+      g.lineTo(CX + 150 * SCALE * Math.cos(handRad), CY + 150 * SCALE * Math.sin(handRad))
+      g.stroke()
+
+      g.fillStyle = BG
+      g.beginPath(); g.arc(CX, CY, 5 * SCALE, 0, Math.PI * 2); g.fill()
+      g.strokeStyle = GLOW
+      g.lineWidth = 2 * SCALE
+      g.stroke()
+
+      // ------------------------------------------------------------- chữ
+      const LEFT = 64
+
+      g.textBaseline = 'alphabetic'
+      g.fillStyle = '#e9f0f8'
+      g.letterSpacing = '6px'
+      g.font = '650 62px "Segoe UI", ui-sans-serif, system-ui, sans-serif'
+      g.fillText('GIỜ CHUẨN', LEFT, 191)
+
+      g.letterSpacing = '0px'
+      g.fillStyle = MUTED
+      g.font = '23px "Segoe UI", ui-sans-serif, system-ui, sans-serif'
+      g.fillText('Đồng hồ đồng bộ NTP thật — và nói thẳng nó', LEFT, 247)
+      g.fillText('chính xác tới mức nào.', LEFT, 280)
+
+      // Ô chỉ số: đúng thứ app thật hiển thị, không phải khẩu hiệu suông.
+      const BX = LEFT, BY = 319, BW = 266, BH = 45, BR = 10
+      g.beginPath()
+      g.moveTo(BX + BR, BY)
+      g.arcTo(BX + BW, BY, BX + BW, BY + BH, BR)
+      g.arcTo(BX + BW, BY + BH, BX, BY + BH, BR)
+      g.arcTo(BX, BY + BH, BX, BY, BR)
+      g.arcTo(BX, BY, BX + BW, BY, BR)
+      g.closePath()
+      g.fillStyle = 'rgba(61, 220, 151, 0.07)'
+      g.fill()
+      g.strokeStyle = '#1f3a30'
+      g.lineWidth = 1
+      g.stroke()
+
+      // Đèn báo
+      g.fillStyle = GLOW
+      g.shadowColor = 'rgba(61, 220, 151, 0.8)'
+      g.shadowBlur = 10
+      g.beginPath(); g.arc(BX + 25, BY + BH / 2, 4.5, 0, Math.PI * 2); g.fill()
+      g.shadowBlur = 0
+
+      g.fillStyle = GLOW
+      g.font = '19px Consolas, "Cascadia Mono", ui-monospace, monospace'
+      g.fillText('±28 ms · NTP (UDP)', BX + 42, BY + BH / 2 + 7)
+
+      // ------------------------------------------------- gửi về server ghi file
+      const status = document.getElementById('status')
+      c.toBlob(async (blob) => {
+        try {
+          const res = await fetch('/save', { method: 'POST', body: blob })
+          const text = await res.text()
+          status.textContent = res.ok
+            ? `đã ghi ${text} (${(blob.size / 1024).toFixed(0)} KB)`
+            : `lỗi: ${text}`
+        } catch (err) {
+          status.textContent = 'không gửi được: ' + err.message
+        }
+      }, 'image/png')
+    </script>
+  </body>
+</html>
