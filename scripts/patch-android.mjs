@@ -76,4 +76,69 @@ const log = (msg) => console.log(`  ${msg}`)
   }
 }
 
+// ------------------------------------------------------------------ kí bản release
+// Tauri 2.9 KHÔNG sinh signingConfigs. Nếu không chèn, `tauri android build`
+// vẫn chạy trơn tru và xuất ra .aab — nhưng file đó CHƯA ĐƯỢC KÍ, và Play từ
+// chối. Không có cảnh báo nào trong log; chỉ `jarsigner -verify` mới lộ ra.
+// Ghi keystore.properties thôi là vô nghĩa nếu Gradle không đọc nó.
+{
+  const gradle = join(ANDROID, 'app', 'build.gradle.kts')
+  const before = readFileSync(gradle, 'utf8')
+
+  if (before.includes('signingConfigs')) {
+    log('build.gradle.kts: cấu hình kí đã có từ trước')
+  } else {
+    const loader = `
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+`
+    const signing = `    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.getProperty("storeFile")?.let { storeFile = file(it) }
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                // Chấp nhận cả hai tên khoá cho mật khẩu key.
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                    ?: keystoreProperties.getProperty("password")
+            }
+        }
+    }
+`
+    // Không có keystore thì vẫn build được (bản chưa kí, để thử nghiệm cục bộ).
+    const applySigning = `            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+`
+    // Mọi mẫu đều phải chịu được CRLF: trên Windows file này xuống dòng bằng
+    // \r\n, nên `\n\n` sẽ không khớp trong khi `\n` đơn lẻ vẫn khớp — vá được
+    // một nửa, Gradle lỗi biến không tồn tại.
+    let after = before
+    after = after.replace(/\r?\n\r?\nandroid \{/, `\n${loader}\nandroid {`)
+    after = after.replace(/\r?\n    buildTypes \{/, `\n${signing}    buildTypes {`)
+    after = after.replace(/(getByName\("release"\) \{\r?\n)/, `$1${applySigning}`)
+
+    // Kiểm TỪNG mảnh. Chỉ hỏi "có signingConfigs không" là không đủ: lần trước
+    // đúng vì thế mà một bản vá hụt lọt qua.
+    const missing = [
+      ['khai báo keystoreProperties', after.includes('val keystorePropertiesFile')],
+      ['khối signingConfigs', after.includes('signingConfigs {')],
+      ['gán signingConfig cho release', after.includes('signingConfigs.getByName("release")')],
+    ].filter(([, ok]) => !ok).map(([name]) => name)
+
+    if (missing.length > 0) {
+      console.error(`  build.gradle.kts: CHÈN HỤT — thiếu ${missing.join(', ')}`)
+      console.error('  Mẫu file do Tauri sinh ra có thể đã đổi. Dừng để khỏi build ra bản chưa kí.')
+      process.exit(1)
+    }
+    writeFileSync(gradle, after)
+    changed++
+    log('build.gradle.kts: chèn signingConfigs cho bản release')
+  }
+}
+
 console.log(changed > 0 ? `Đã vá ${changed} chỗ.` : 'Không có gì phải vá.')
