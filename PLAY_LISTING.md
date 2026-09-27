@@ -91,7 +91,7 @@ Toàn bộ ứng dụng dưới 8 MB.
 |---|---|---|
 | Icon | 512×512 PNG, 32-bit | ✅ `web/public/icon-512.png` |
 | Ảnh màn hình điện thoại | tối thiểu 2, từ 320px tới 3840px | ✅ `release/screenshots/` — 3 ảnh 1080×2340 |
-| **Ảnh bìa (Feature graphic)** | **1024×500 PNG hoặc JPG** | ❌ **CHƯA CÓ — bắt buộc phải có mới đăng được** |
+| **Ảnh bìa (Feature graphic)** | 1024×500 PNG hoặc JPG | ✅ `release/feature-graphic-1024x500.png` |
 | Ảnh tablet 7" và 10" | tuỳ chọn | ❌ chưa có |
 | Video giới thiệu | tuỳ chọn | ❌ chưa có |
 
@@ -101,8 +101,9 @@ Toàn bộ ứng dụng dưới 8 MB.
 2. `02-chon-mui-gio.png` — hộp thoại chọn múi giờ
 3. `03-gio-the-gioi.png` — danh sách giờ thế giới
 
-> Ảnh bìa là mục **bắt buộc**. Chưa có thì Play Console không cho chuyển sang trạng thái
-> phát hành. Xem mục 6.
+Ảnh bìa dựng từ `design/feature-graphic.html` — mở bằng `node design/serve.mjs` rồi vào
+`http://localhost:4600/` là trang tự vẽ và ghi đè file PNG. Sửa chữ hay bố cục thì sửa
+trong file HTML đó rồi tải lại trang.
 
 ---
 
@@ -176,13 +177,12 @@ Khai như vậy là đúng sự thật, căn cứ:
 
 ## 6. Việc còn phải làm trước khi đăng được
 
-1. **Tạo ảnh bìa 1024×500** — bắt buộc, chưa có
-2. **Điền email liên hệ công khai** — Play bắt buộc, mình không tự điền thay bạn được
-3. **Xác minh danh tính** người phát hành trong Play Console
-4. **Chạy closed test 12 người thử nghiệm trong 14 ngày liên tục** — bắt buộc với tài
+1. **Điền email liên hệ công khai** — Play bắt buộc, mình không tự điền thay bạn được
+2. **Xác minh danh tính** người phát hành trong Play Console
+3. **Chạy closed test 12 người thử nghiệm trong 14 ngày liên tục** — bắt buộc với tài
    khoản cá nhân tạo từ 13/11/2023. Đây là mốc chặn lâu nhất, nên bắt đầu càng sớm càng tốt
-5. **Bật Play App Signing** — Google giữ khoá phát hành, bạn chỉ giữ khoá upload
-6. **Khai báo trader status** nếu phát hành tại EU
+4. **Bật Play App Signing** — Google giữ khoá phát hành, bạn chỉ giữ khoá upload
+5. **Khai báo trader status** nếu phát hành tại EU
 
 ---
 
