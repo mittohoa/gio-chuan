@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chính sách quyền riêng tư — Giờ Chuẩn</title>
+    <style>
+      :root { color-scheme: dark light; }
+      body {
+        margin: 0 auto; max-width: 42rem; padding: 3rem 1.5rem 5rem;
+        font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #06080c; color: #e9f0f8;
+      }
+      @media (prefers-color-scheme: light) { body { background: #f2f4f7; color: #0d141d; } }
+      h1 { font-size: 1.6rem; letter-spacing: -0.01em; }
+      h2 { font-size: 1.05rem; margin-top: 2.2rem; }
+      code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
+      .meta { opacity: 0.6; font-size: 0.85rem; }
+      a { color: #4cc2ff; }
+    </style>
+  </head>
+  <body>
+    <h1>Chính sách quyền riêng tư</h1>
+    <p class="meta">Ứng dụng: Giờ Chuẩn · Cập nhật lần cuối: 26/09/2026</p>
+
+    <h2>Tóm tắt</h2>
+    <p>
+      Ứng dụng này <strong>không thu thập, không lưu trữ và không chia sẻ</strong> bất kì
+      dữ liệu cá nhân nào. Không có tài khoản, không có analytics, không có quảng cáo,
+      không có mã theo dõi của bên thứ ba.
+    </p>
+
+    <h2>Dữ liệu lưu trên máy bạn</h2>
+    <p>
+      Ứng dụng lưu vào bộ nhớ cục bộ của chính thiết bị (<code>localStorage</code>) những
+      thứ sau, và chúng không bao giờ rời khỏi máy:
+    </p>
+    <ul>
+      <li>Danh sách thành phố bạn đã thêm và múi giờ chính bạn chọn</li>
+      <li>Tuỳ chọn ngôn ngữ, giao diện sáng/tối, bật hay tắt mili-giây</li>
+      <li>Kết quả đồng bộ giờ gần nhất, để ứng dụng vẫn chính xác khi mất mạng</li>
+    </ul>
+    <p>Gỡ ứng dụng hoặc xoá dữ liệu ứng dụng là mọi thứ trên biến mất.</p>
+
+    <h2>Kết nối mạng</h2>
+    <p>
+      Để biết giờ chính xác, ứng dụng gửi yêu cầu lấy dấu thời gian tới các máy chủ công
+      cộng sau:
+    </p>
+    <ul>
+      <li><code>time.cloudflare.com</code>, <code>pool.ntp.org</code>, <code>time.google.com</code> — giao thức NTP (bản Android, Windows, Linux)</li>
+      <li><code>cloudflare.com</code> và <code>timeapi.io</code> — qua HTTPS (bản web)</li>
+    </ul>
+    <p>
+      Các yêu cầu này chỉ hỏi giờ hiện tại. Ứng dụng không gửi kèm danh tính, vị trí hay
+      bất kì thông tin nào về bạn. Như mọi kết nối Internet, máy chủ nhận được sẽ thấy địa
+      chỉ IP của bạn — đây là đặc tính của giao thức mạng, không phải dữ liệu do ứng dụng
+      thu thập.
+    </p>
+
+    <h2>Quyền của ứng dụng</h2>
+    <p>
+      Trên Android, ứng dụng chỉ xin quyền <code>INTERNET</code>. Không xin vị trí, danh
+      bạ, bộ nhớ, máy ảnh, micro hay thông báo.
+    </p>
+
+    <h2>Trẻ em</h2>
+    <p>
+      Ứng dụng không hướng tới trẻ em và cũng không thu thập dữ liệu của bất kì ai, ở bất
+      kì độ tuổi nào.
+    </p>
+
+    <h2>Thay đổi chính sách</h2>
+    <p>
+      Nếu chính sách này thay đổi, bản mới sẽ được đăng tại chính trang này kèm ngày cập
+      nhật.
+    </p>
+
+    <h2>Liên hệ</h2>
+    <p>Mọi câu hỏi về quyền riêng tư xin gửi tới địa chỉ liên hệ ghi trên trang Play Store của ứng dụng.</p>
+
+    <p><a href="./">← Quay lại ứng dụng</a></p>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Quyền tối thiểu: app chỉ cần gọi lệnh sntp_sample của chính nó, không đụng tới file, shell hay hệ thống.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

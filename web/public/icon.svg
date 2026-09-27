@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Giờ Chuẩn">
+  <rect width="512" height="512" rx="112" fill="#0b0f17"/>
+  <circle cx="256" cy="256" r="156" fill="none" stroke="#1f6feb" stroke-width="20"/>
+  <g stroke="#e8edf7" stroke-width="22" stroke-linecap="round">
+    <line x1="256" y1="256" x2="256" y2="142"/>
+    <line x1="256" y1="256" x2="338" y2="296"/>
+  </g>
+  <circle cx="256" cy="256" r="18" fill="#66a3ff"/>
+  <g fill="#93a0b8">
+    <rect x="248" y="72" width="16" height="30" rx="8"/>
+    <rect x="248" y="410" width="16" height="30" rx="8"/>
+    <rect x="72" y="248" width="30" height="16" rx="8"/>
+    <rect x="410" y="248" width="30" height="16" rx="8"/>
+  </g>
+</svg>

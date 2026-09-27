@@ -1,0 +1,27 @@
+[package]
+name = "mittohoa-timeis"
+version = "0.1.0"
+description = "Dong ho chinh xac dong bo theo gio nguyen tu"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+# Tauri v2 build cho Android/iOS qua crate thu vien; binary desktop chi goi vao day.
+name = "mittohoa_timeis_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# Binary nho -> APK/AAB nho, tai nhanh hon tren Play.
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

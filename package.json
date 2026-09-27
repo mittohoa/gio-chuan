@@ -1,0 +1,26 @@
+{
+  "name": "time-is",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Đồng hồ chính xác đa nền tảng - web (GitHub Pages), Windows, Linux, Android",
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "install:all": "npm install && npm --prefix web install",
+
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+
+    "android:init": "tauri android init && node scripts/patch-android.mjs",
+    "android:patch": "node scripts/patch-android.mjs",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build --aab --target aarch64 --target armv7 --target x86_64",
+    "android:apk": "tauri android build --apk --target aarch64"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}

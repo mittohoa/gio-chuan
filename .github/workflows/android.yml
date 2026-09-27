@@ -1,0 +1,106 @@
+name: Build Android (AAB cho Play)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Android Gradle Plugin 8.x cần JDK 17 trở lên.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      # NDK r28 trở lên là BẮT BUỘC: Play chặn phát hành nếu thư viện .so không
+      # hỗ trợ trang bộ nhớ 16 KB, mà app này có mã Rust biên dịch ra .so.
+      - name: Cài NDK r28
+        run: |
+          sdkmanager --install "ndk;28.2.13676358" "platforms;android-36" "build-tools;36.0.0"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Cài phụ thuộc
+        run: |
+          npm ci
+          npm ci --prefix web
+
+      - name: Sinh icon
+        run: node scripts/gen-icons.mjs
+
+      - name: Tạo dự án Android
+        # Lệnh này chạy kèm scripts/patch-android.mjs: đảm bảo targetSdk 36 và
+        # sửa màu icon thanh hệ thống. gen/android không được commit nên mọi
+        # chỉnh sửa trong đó phải nằm trong script mới sống sót qua CI.
+        run: npm run android:init
+
+      - name: Xác nhận SDK level
+        run: grep -rn 'targetSdk\|compileSdk' src-tauri/gen/android --include=build.gradle.kts
+
+      - name: Nạp khoá kí
+        # Tạo sẵn 4 secret trong repo: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+        # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Thiếu secret ANDROID_KEYSTORE_BASE64 — không kí được bản phát hành."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          cat > src-tauri/gen/android/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/upload.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          password=$KEY_PASSWORD
+          EOF
+
+      - name: Build AAB
+        run: npm run android:build
+
+      - name: Kiểm tra hỗ trợ trang 16 KB
+        # Chốt chặn cuối: mọi .so phải căn theo 16 KB, nếu không Play sẽ từ chối.
+        run: |
+          set -e
+          AAB=$(find src-tauri/gen/android -name '*.aab' | head -n1)
+          echo "AAB: $AAB"
+          mkdir -p "$RUNNER_TEMP/aab" && unzip -q -o "$AAB" -d "$RUNNER_TEMP/aab"
+          fail=0
+          while IFS= read -r so; do
+            align=$("$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -l "$so" \
+              | awk '/LOAD/ {print $NF}' | sort -u | tr '\n' ' ')
+            echo "$so -> $align"
+            case "$align" in *0x4000*|*0x10000*) ;; *) echo "::error::$so chưa căn 16 KB"; fail=1;; esac
+          done < <(find "$RUNNER_TEMP/aab" -name '*.so')
+          exit $fail
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mittohoa-timeis-android
+          path: src-tauri/gen/android/**/*.aab
+          if-no-files-found: error

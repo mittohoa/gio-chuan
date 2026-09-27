@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Android signing — KHÔNG BAO GIỜ commit
+*.keystore
+*.jks
+keystore.properties
+src-tauri/gen/android/keystore.properties
+
+# Build output
+*.aab
+*.apk
