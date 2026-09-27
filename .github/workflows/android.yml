@@ -77,7 +77,22 @@ jobs:
             echo "::error::Thiếu secret ANDROID_KEYSTORE_BASE64 — không kí được bản phát hành."
             exit 1
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          # Cắt sạch khoảng trắng và CR trước khi giải mã. PowerShell thêm CRLF
+          # khi pipe sang chương trình ngoài, nên secret nạp từ Windows rất dễ
+          # dính \r — base64 sẽ báo "invalid input", còn mật khẩu thì âm thầm sai.
+          printf '%s' "$KEYSTORE_B64" | tr -d '\r\n \t' | base64 -d > "$RUNNER_TEMP/upload.jks"
+          STORE_PASSWORD=$(printf '%s' "$STORE_PASSWORD" | tr -d '\r\n')
+          KEY_PASSWORD=$(printf '%s' "$KEY_PASSWORD" | tr -d '\r\n')
+          KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n')
+
+          # Kiểm ngay tại đây: sai khoá thì dừng, đừng để lỗi lộ ra mãi ở khâu kí.
+          if ! keytool -list -keystore "$RUNNER_TEMP/upload.jks" \
+                 -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::Không mở được keystore bằng mật khẩu/alias đã cho."
+            exit 1
+          fi
+          echo "Keystore hợp lệ, alias '$KEY_ALIAS' tồn tại."
+
           cat > src-tauri/gen/android/keystore.properties <<EOF
           storeFile=$RUNNER_TEMP/upload.jks
           storePassword=$STORE_PASSWORD
