@@ -16,3 +16,6 @@ src-tauri/gen/android/keystore.properties
 # Build output
 *.aab
 *.apk
+
+# San pham phat hanh - lay tu artifact CI
+release/
