@@ -25,6 +25,11 @@ jobs:
           java-version: 17
 
       - uses: android-actions/setup-android@v3
+        with:
+          # Mặc định action cài gói "tools" — gói này Google đã gỡ khỏi kho, nên
+          # sdkmanager trả exit 1 và cả job chết ngay ở giây thứ 16. Để rỗng thì
+          # action chỉ lo đặt PATH và chấp nhận license, đúng thứ ta cần.
+          packages: ''
 
       # NDK r28 trở lên là BẮT BUỘC: Play chặn phát hành nếu thư viện .so không
       # hỗ trợ trang bộ nhớ 16 KB, mà app này có mã Rust biên dịch ra .so.
