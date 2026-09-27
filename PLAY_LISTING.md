@@ -92,14 +92,25 @@ Toàn bộ ứng dụng dưới 8 MB.
 | Icon | 512×512 PNG, 32-bit | ✅ `web/public/icon-512.png` |
 | Ảnh màn hình điện thoại | tối thiểu 2, từ 320px tới 3840px | ✅ `release/screenshots/` — 3 ảnh 1080×2340 |
 | **Ảnh bìa (Feature graphic)** | 1024×500 PNG hoặc JPG | ✅ `release/feature-graphic-1024x500.png` |
-| Ảnh tablet 7" và 10" | tuỳ chọn | ❌ chưa có |
+| Ảnh tablet 7" | tuỳ chọn | ✅ `tablet7-01.png` — 1200×1920 |
+| Ảnh tablet 10" | tuỳ chọn | ✅ `tablet10-01.png` — 1600×2560 |
 | Video giới thiệu | tuỳ chọn | ❌ chưa có |
 
 Ảnh màn hình hiện có, chụp từ bản AAB thật đã kí:
 
+**Điện thoại** (1080×2340):
+
 1. `01-man-hinh-chinh.png` — mặt đồng hồ và hai đồng hồ đo
 2. `02-chon-mui-gio.png` — hộp thoại chọn múi giờ
 3. `03-gio-the-gioi.png` — danh sách giờ thế giới
+
+**Tablet**:
+
+4. `tablet7-01.png` — 1200×1920
+5. `tablet10-01.png` — 1600×2560, hiện đủ 8 thành phố trong một màn
+
+Ảnh tablet chụp bằng cách đổi độ phân giải máy ảo (`adb shell wm size` và
+`wm density 320`) rồi chạy lại app, chứ không phóng to ảnh điện thoại.
 
 Ảnh bìa dựng từ `design/feature-graphic.html` — mở bằng `node design/serve.mjs` rồi vào
 `http://localhost:4600/` là trang tự vẽ và ghi đè file PNG. Sửa chữ hay bố cục thì sửa
