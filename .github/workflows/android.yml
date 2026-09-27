@@ -104,23 +104,57 @@ jobs:
         run: npm run android:build
 
       - name: Kiểm tra hỗ trợ trang 16 KB
-        # Chốt chặn cuối: mọi .so phải căn theo 16 KB, nếu không Play sẽ từ chối.
+        # Chốt chặn cuối trước khi nộp Play.
+        #
+        # CHỈ áp cho ABI 64-bit. Trang 16 KB là tính năng của thiết bị 64-bit, và
+        # yêu cầu của Play cũng chỉ áp cho arm64-v8a và x86_64. Thư viện
+        # armeabi-v7a (32-bit) căn 4 KB là ĐÚNG, không phải lỗi — áp luật cho nó
+        # sẽ tự đánh trượt một bản build hoàn toàn hợp lệ.
         run: |
-          set -e
-          AAB=$(find src-tauri/gen/android -name '*.aab' | head -n1)
-          echo "AAB: $AAB"
-          mkdir -p "$RUNNER_TEMP/aab" && unzip -q -o "$AAB" -d "$RUNNER_TEMP/aab"
+          set -eo pipefail
+          READELF="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          # Lấy AAB thành phẩm trong outputs/, không phải bundle trung gian.
+          AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name '*.aab' | head -n1)
+          if [ -z "$AAB" ]; then
+            echo "::error::Không tìm thấy AAB nào trong outputs/bundle"
+            exit 1
+          fi
+          echo "AAB: $AAB ($(du -h "$AAB" | cut -f1))"
+
+          rm -rf "$RUNNER_TEMP/aab"
+          mkdir -p "$RUNNER_TEMP/aab"
+          unzip -q -o "$AAB" -d "$RUNNER_TEMP/aab"
+
           fail=0
+          found64=0
           while IFS= read -r so; do
-            align=$("$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -l "$so" \
-              | awk '/LOAD/ {print $NF}' | sort -u | tr '\n' ' ')
-            echo "$so -> $align"
-            case "$align" in *0x4000*|*0x10000*) ;; *) echo "::error::$so chưa căn 16 KB"; fail=1;; esac
+            abi=$(basename "$(dirname "$so")")
+            align=$("$READELF" -l "$so" | awk '/LOAD/ {print $NF}' | sort -u | tr '\n' ' ')
+            case "$abi" in
+              arm64-v8a|x86_64|riscv64)
+                found64=1
+                case "$align" in
+                  *0x4000*|*0x10000*) echo "  $abi  align=$align  ĐẠT" ;;
+                  *) echo "  $abi  align=$align  KHÔNG ĐẠT"
+                     echo "::error::$abi chưa căn 16 KB — Play sẽ chặn phát hành"
+                     fail=1 ;;
+                esac ;;
+              *)
+                echo "  $abi  align=$align  (32-bit, không thuộc diện kiểm)" ;;
+            esac
           done < <(find "$RUNNER_TEMP/aab" -name '*.so')
+
+          if [ "$found64" -eq 0 ]; then
+            echo "::error::Không thấy thư viện 64-bit nào — Play bắt buộc phải có"
+            exit 1
+          fi
           exit $fail
 
       - uses: actions/upload-artifact@v4
         with:
           name: mittohoa-timeis-android
-          path: src-tauri/gen/android/**/*.aab
+          # Chỉ lấy AAB thành phẩm. Glob rộng sẽ vơ cả intermediary-bundle.aab
+          # trong intermediates/ và người tải về không biết file nào để nộp Play.
+          path: src-tauri/gen/android/app/build/outputs/bundle/**/*.aab
           if-no-files-found: error
