@@ -2,8 +2,8 @@ import { SyncedClock } from '../core/clock'
 import type { ClockState } from '../core/types'
 import { STRINGS, detectLang, type Lang, type Strings } from '../core/i18n'
 import {
-  DEFAULT_CITIES, dayOfYear, formatOffset, isDst, isoWeek, localTimeZone,
-  utcOffsetMinutes, zoneAbbreviation, zoneCityName, zonedParts,
+  DEFAULT_CITIES, cachedFormatter, dayOfYear, formatOffset, isDst, isoWeek,
+  localTimeZone, utcOffsetMinutes, zoneAbbreviation, zoneCityName, zonedParts,
 } from '../core/tz'
 import { createCityPicker } from './cityPicker'
 import { createDial } from './dial'
@@ -360,12 +360,6 @@ export function mountApp(root: HTMLElement): void {
     // Kim quét chạy theo giây thật kèm phần lẻ, nên chuyển động mượt liên tục.
     dial.update(p.second + (now % 1000) / 1000)
 
-    const main = `${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}`
-    if (main !== lastMain) {
-      el.clockMain.textContent = main
-      lastMain = main
-    }
-
     if (settings.showMs) {
       const ms = `.${pad(now % 1000, 3)}`
       if (ms !== lastMs) {
@@ -377,29 +371,41 @@ export function mountApp(root: HTMLElement): void {
       lastMs = ''
     }
 
-    const dateStr = new Intl.DateTimeFormat(t.locale, {
-      timeZone: settings.homeZone,
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date(now))
-    const { week } = isoWeek(p)
-    const full = `${dateStr}  ·  ${t.week} ${week}  ·  ${t.dayOfYear} ${dayOfYear(p)}`
+    // Từ đây trở xuống chỉ chạy khi giây thay đổi — tức khoảng 1 lần/giây thay vì
+    // 60 lần. Ngày tháng, số tuần và thông tin múi giờ đều không thể đổi giữa hai
+    // giây, nên trước kia cả khối này chạy mỗi khung hình chỉ để so sánh rồi vứt
+    // đi. Cộng với việc dựng lại formatter mỗi lần, nó đủ nặng để Android bật hộp
+    // thoại "ứng dụng không phản hồi" trên máy yếu.
+    const main = `${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}`
+    if (main !== lastMain) {
+      el.clockMain.textContent = main
+      lastMain = main
 
-    if (full !== lastDate) {
-      el.date.textContent = full
-      el.place.textContent = zoneCityName(settings.homeZone)
-      const abbr = zoneAbbreviation(settings.homeZone, new Date(now), t.locale)
-      const off = formatOffset(utcOffsetMinutes(settings.homeZone, new Date(now)))
-      const dst = isDst(settings.homeZone, new Date(now)) ? ` · ${t.dstOn}` : ''
-      el.zoneinfo.textContent = `${abbr} · ${off}${dst}`
-      lastDate = full
-    }
+      const dateStr = cachedFormatter(t.locale, {
+        timeZone: settings.homeZone,
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(now))
+      const { week } = isoWeek(p)
+      const full = `${dateStr}  ·  ${t.week} ${week}  ·  ${t.dayOfYear} ${dayOfYear(p)}`
 
-    if (p.minute !== lastMinute) {
-      lastMinute = p.minute
-      renderCities()
+      if (full !== lastDate) {
+        el.date.textContent = full
+        el.place.textContent = zoneCityName(settings.homeZone)
+        const at = new Date(now)
+        const abbr = zoneAbbreviation(settings.homeZone, at, t.locale)
+        const off = formatOffset(utcOffsetMinutes(settings.homeZone, at))
+        const dst = isDst(settings.homeZone, at) ? ` · ${t.dstOn}` : ''
+        el.zoneinfo.textContent = `${abbr} · ${off}${dst}`
+        lastDate = full
+      }
+
+      if (p.minute !== lastMinute) {
+        lastMinute = p.minute
+        renderCities()
+      }
     }
 
     requestAnimationFrame(tick)

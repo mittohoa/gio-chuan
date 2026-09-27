@@ -1,5 +1,28 @@
 /** Tiện ích múi giờ — dựa hoàn toàn vào Intl, không cần tải bảng dữ liệu nào. */
 
+/**
+ * Bộ nhớ đệm cho `Intl.DateTimeFormat`.
+ *
+ * Khởi tạo một formatter rất đắt — nó phải nạp dữ liệu ICU cho locale và múi giờ.
+ * Vòng lặp vẽ chạy 60 khung/giây, mỗi khung lại gọi `zonedParts`, nên nếu tạo mới
+ * mỗi lần thì riêng việc dựng formatter đã ngốn hết luồng chính. Trên emulator
+ * điều này đủ để Android bật hộp thoại "ứng dụng không phản hồi"; trên máy thật
+ * thì biểu hiện nhẹ hơn nhưng vẫn hao pin và giật hình.
+ *
+ * Số tổ hợp (locale, múi giờ, tuỳ chọn) rất ít nên bộ đệm không bao giờ phình to.
+ */
+const DTF_CACHE = new Map<string, Intl.DateTimeFormat>()
+
+function formatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = locale + '|' + JSON.stringify(options)
+  let dtf = DTF_CACHE.get(key)
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat(locale, options)
+    DTF_CACHE.set(key, dtf)
+  }
+  return dtf
+}
+
 /** Danh sách IANA timezone của runtime; có phương án dự phòng cho engine cũ. */
 export function listTimeZones(): string[] {
   const supported = (
@@ -15,6 +38,14 @@ export function listTimeZones(): string[] {
   return FALLBACK_ZONES.slice()
 }
 
+/** Dùng chung bộ đệm formatter cho các module khác. */
+export function cachedFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  return formatter(locale, options)
+}
+
 export function localTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 }
@@ -22,7 +53,7 @@ export function localTimeZone(): string {
 /** Độ lệch UTC của một múi giờ tại một thời điểm, tính bằng phút. */
 export function utcOffsetMinutes(tz: string, at: Date): number {
   // Diễn giải cùng một mốc theo tz rồi so với cách đọc theo UTC.
-  const dtf = new Intl.DateTimeFormat('en-US', {
+  const dtf = formatter('en-US', {
     timeZone: tz,
     hour12: false,
     year: 'numeric',
@@ -56,7 +87,7 @@ export function formatOffset(minutes: number): string {
 
 /** Tên viết tắt của múi giờ tại thời điểm đó, ví dụ "GMT+7", "CEST". */
 export function zoneAbbreviation(tz: string, at: Date, locale: string): string {
-  const parts = new Intl.DateTimeFormat(locale, {
+  const parts = formatter(locale, {
     timeZone: tz,
     timeZoneName: 'short',
   }).formatToParts(at)
@@ -87,7 +118,7 @@ const WEEKDAY_INDEX: Record<string, number> = {
 }
 
 export function zonedParts(epochMs: number, tz: string): ZonedParts {
-  const dtf = new Intl.DateTimeFormat('en-US', {
+  const dtf = formatter('en-US', {
     timeZone: tz,
     hour12: false,
     weekday: 'short',
