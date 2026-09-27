@@ -103,14 +103,37 @@ mời dư 15–18 người.
 
 ## 6. Quản lý khoá kí
 
-Tạo một lần, giữ thật kĩ. Mất khoá nghĩa là không cập nhật được app nữa.
+Khoá của dự án này **đã tạo rồi**, nằm ngoài repo:
+
+| | |
+|---|---|
+| Keystore | `C:\Users\hoadu\keys\gio-chuan-upload.jks` |
+| Mật khẩu | `C:\Users\hoadu\keys\gio-chuan-upload-README.txt` |
+| Alias | `upload` — RSA 4096, hạn tới 12/02/2054 |
+| Vân tay SHA-256 | `EA:F8:1F:9F:52:71:D2:54:AB:28:8F:A7:37:B5:58:A1:98:01:5D:9F:05:B6:73:01:39:D8:C8:45:FA:C8:CC:CB` |
+
+**Sao lưu cả hai file ra nơi khác.** Mất khoá là không bao giờ cập nhật được app nữa.
+Bật **Play App Signing** khi nộp để Google giữ khoá phát hành, bạn chỉ giữ khoá upload —
+mất khoá upload thì còn xin cấp lại được.
+
+Tạo lại từ đầu (nếu cần cho dự án khác):
 
 ```bash
-keytool -genkeypair -v -keystore upload.jks -keyalg RSA -keysize 4096 \
-  -validity 10000 -alias upload
+keytool -genkeypair -keystore upload.jks -alias upload \
+  -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-Nạp vào GitHub Secrets cho workflow `android.yml`:
+### Tauri KHÔNG tự kí — đây là cái bẫy lớn nhất
+
+`tauri android build` **không** sinh `signingConfigs` trong `app/build.gradle.kts`. Tạo
+file `keystore.properties` thôi là vô nghĩa: Gradle không biết file đó tồn tại. Build vẫn
+chạy trơn tru, vẫn xuất ra `.aab` trông bình thường — **nhưng chưa được kí**, và không có
+một dòng cảnh báo nào trong log. Chỉ tới lúc Play từ chối mới biết.
+
+`scripts/patch-android.mjs` chèn khối `signingConfigs` đó vào sau mỗi lần
+`tauri android init`. Không có bước này thì mọi bản release đều vô dụng.
+
+### Nạp secret cho CI
 
 | Secret | Nội dung |
 |---|---|
@@ -119,11 +142,36 @@ Nạp vào GitHub Secrets cho workflow `android.yml`:
 | `ANDROID_KEY_ALIAS` | `upload` |
 | `ANDROID_KEY_PASSWORD` | mật khẩu khoá |
 
-`.gitignore` đã chặn `*.jks`, `*.keystore` và `keystore.properties`. Đừng bao giờ commit
-chúng.
+Nạp bằng **bash**, đừng dùng PowerShell: PowerShell thêm CRLF khi pipe sang chương trình
+ngoài nên secret dính `\r`. Với chuỗi base64 thì `base64 -d` báo lỗi ngay, nhưng với mật
+khẩu thì **không báo gì cả** — chỉ âm thầm sai mật khẩu lúc kí.
 
-Nên bật **Play App Signing** để Google giữ khoá phát hành, còn bạn chỉ giữ khoá upload —
-mất khoá upload thì còn xin cấp lại được.
+```bash
+base64 -w0 upload.jks | gh secret set ANDROID_KEYSTORE_BASE64 --repo <owner>/<repo>
+printf '%s' "$PW"     | gh secret set ANDROID_KEYSTORE_PASSWORD --repo <owner>/<repo>
+```
+
+`.gitignore` đã chặn `*.jks`, `*.keystore` và `keystore.properties`.
+
+### Kiểm chữ kí — dùng đúng công cụ cho đúng định dạng
+
+Đây là chỗ rất dễ kết luận nhầm theo cả hai chiều:
+
+| Định dạng | Công cụ đúng | Vì sao |
+|---|---|---|
+| `.apk` | `apksigner verify --print-certs` | APK hiện đại kí theo scheme v2/v3 |
+| `.aab` | `jarsigner -verify` | AAB kí theo chuẩn JAR v1; `apksigner` không đọc được AAB |
+
+Dùng `jarsigner` để kiểm một APK **đã kí đúng** vẫn ra `jar is unsigned`, vì nó chỉ hiểu
+v1. Báo động nhầm rất dễ xảy ra ở đây.
+
+Phép kiểm quyết định không phải "có chữ kí không" mà là **vân tay có trùng khoá upload
+không** — nếu không, rất có thể Gradle đã kí bằng khoá debug tự sinh:
+
+```bash
+apksigner verify --print-certs app.apk | grep "SHA-256"
+keytool -list -v -keystore upload.jks -alias upload | grep SHA256
+```
 
 ---
 
